@@ -5,12 +5,13 @@
 #include <cmath> // sqrt, pow
 #include <map> // std::map;
 #include <utility> // std::pair;
+#include <numeric>
 
 enum {
 	blue, green, red
 };
 
-#define SCALER 10
+#define SCALER 50
 
 bool inRange(cv::Vec3b stable, cv::Vec3b floating) {
 	double dist = sqrt(pow((uint)stable[blue] - (uint)floating[blue], 2) + \
@@ -42,16 +43,13 @@ int main(int argc, char** argv) {
 			continue;
 		}
 
-		cv::String imageWindowName = customPath; //Name of the window
-		cv::namedWindow(imageWindowName); // Create a window
-		cv::imshow(imageWindowName, image); // Show our image inside the created window.
-
-		unsigned long long totalValuedPixelsCount = image.rows * image.cols;
+		unsigned long long totalValuedPixelsCount = (image.rows) * (image.cols);
 
 		std::srand(time(NULL));
 		//some problems with std::map tho
 		std::vector<cv::Vec3b> popularColors;
 		std::vector<uint> popularColorsEncounters;
+		std::vector<std::pair<int, int> > coordinates;
 		for (int i = 0; i < totalValuedPixelsCount / SCALER; i++) {
 			int x = std::rand() % image.cols;
 			int y = std::rand() % image.rows;
@@ -62,14 +60,27 @@ int main(int argc, char** argv) {
 			else {
 				popularColors.push_back(color);
 				popularColorsEncounters.push_back(1);
+				coordinates.push_back(std::make_pair(x, y));
 			}
 		}
 
+		long long sumOfEncounters = std::accumulate(popularColorsEncounters.begin(), popularColorsEncounters.end(), 0);
+
 		for (int i = 0; i < popularColors.size(); i++) {
-			if (popularColorsEncounters[i] >= totalValuedPixelsCount / (20 * SCALER)) {
+			if (popularColorsEncounters[i] >= totalValuedPixelsCount / (10 * SCALER)) {
 				std::cout << popularColors[i] << " " << popularColorsEncounters[i] << std::endl;
+				int _radius = (MAX(image.rows, image.cols) / 4) * popularColorsEncounters[i] / sumOfEncounters;
+				cv::circle(image, cv::Point(coordinates[i].first, coordinates[i].second), \
+					_radius, cv::Scalar((uint)popularColors[i][0], \
+					(uint)popularColors[i][1], (uint)popularColors[i][2]), -1);
+				cv::circle(image, cv::Point(coordinates[i].first, coordinates[i].second), \
+					_radius, cv::Scalar(0, 0, 0), 3);
 			}
 		}
+
+		cv::String imageWindowName = customPath; //Name of the window
+		cv::namedWindow(imageWindowName); // Create a window
+		cv::imshow(imageWindowName, image); // Show our image inside the created window.
 
 		cv::waitKey(0); // Wait for any keystroke in the window
 		cv::destroyWindow(imageWindowName);
